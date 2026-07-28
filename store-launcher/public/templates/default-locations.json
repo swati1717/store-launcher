@@ -1,0 +1,24 @@
+[
+  {
+    "name": "HotWax Default Warehouse",
+    "address": {
+      "address1": "123 Commerce St",
+      "city": "Salt Lake City",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84111"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "New York Retail Store",
+    "address": {
+      "address1": "456 Broadway",
+      "city": "New York",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "10012"
+    },
+    "fulfillsOnlineOrders": true
+  }
+]
