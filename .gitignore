@@ -1,0 +1,21 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Large Data & Payload Files
+*.jsonl
+*.csv
+products_inventory.json
+HotWax_Demo_Facility.json
+
+# Demo/Large Excel Files
+# Keep the core SOP but ignore the huge demo data files
+*Demo*.xlsx
+HC Demo Products.xlsx
+
+# MacOS system files
+.DS_Store
+
+# (Optional) Ignore word documents if Markdown is the source of truth
+*.docx
