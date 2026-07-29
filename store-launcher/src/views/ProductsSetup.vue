@@ -56,7 +56,7 @@
           <div class="or-divider" style="text-align: center; margin: 24px 0; color: #64748b; position: relative;">OR</div>
 
           <button @click="loadDefaultDataset" class="gradient-btn" style="width: 100%">
-            Load Default HotWax Dataset
+            Load HotWax Default Data
           </button>
           <p style="text-align: center; font-size: 12px; color: #a0a0b0; margin-top: 8px;">
             This dataset contains 130 complete product families (with variants) and takes roughly 2-3 minutes to fully process via Shopify's Staged Uploads API.
@@ -178,15 +178,47 @@ const startPolling = () => {
   }, 3000);
 };
 
+const prepareProductPayload = async (content: string) => {
+  try {
+    statusMessage.value = "Activating location mapping for products...";
+    const locations = await ShopifyService.getLocations();
+    if (locations.length > 0) {
+      const primaryLocationId = locations[0].id;
+      const lines = content.split('\n').filter(l => l.trim() !== '');
+      const mappedLines = lines.map(line => {
+         try {
+           const p = JSON.parse(line).input;
+           if (p.variants) {
+             p.variants = p.variants.map((v: any) => ({
+               ...v,
+               inventoryQuantities: v.inventoryQuantities || [{
+                 locationId: primaryLocationId,
+                 name: 'available',
+                 quantity: 0
+               }]
+             }));
+           }
+           return JSON.stringify({ input: p });
+         } catch { return line; }
+      });
+      return mappedLines.join('\n');
+    }
+  } catch (err) {
+    console.warn("Could not inject location mapping", err);
+  }
+  return content;
+};
+
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     const content = e.target?.result as string;
-    startBulkOrchestration(content, file.name);
+    const mappedContent = await prepareProductPayload(content);
+    startBulkOrchestration(mappedContent, file.name);
   };
   reader.readAsText(file);
 };
@@ -198,7 +230,8 @@ const loadDefaultDataset = async () => {
     const response = await fetch('/templates/default-products.jsonl');
     if (!response.ok) throw new Error("Could not load default template.");
     const content = await response.text();
-    startBulkOrchestration(content, 'default-products.jsonl');
+    const mappedContent = await prepareProductPayload(content);
+    startBulkOrchestration(mappedContent, 'default-products.jsonl');
   } catch (err: any) {
     uploadStatus.value = 'ERROR';
     bulkError.value = err.message;

@@ -131,6 +131,52 @@ export class ShopifyService {
   }
 
   /**
+   * Fetches all products and returns a map of handle -> productId
+   */
+  static async getProductHandleToIdMap(handles: string[]): Promise<Record<string, string>> {
+    const map: Record<string, string> = {};
+    if (!handles || handles.length === 0) return map;
+
+    // Remove duplicates
+    const uniqueHandles = [...new Set(handles)];
+    
+    // Chunk into batches of 100 to avoid GraphQL cost limits (100 aliases = 100 points)
+    const chunkSize = 100;
+    
+    for (let i = 0; i < uniqueHandles.length; i += chunkSize) {
+      const chunk = uniqueHandles.slice(i, i + chunkSize);
+      
+      // Build a query with aliases for strict database lookup (bypasses search index lag)
+      let queryStr = 'query { ';
+      chunk.forEach((handle, index) => {
+        // Alias must be alphanumeric
+        const alias = `product_${index}`;
+        queryStr += `${alias}: productByHandle(handle: "${handle}") { id title } `;
+      });
+      queryStr += '}';
+
+      try {
+        const data = await this.runGraphQL(queryStr);
+        
+        chunk.forEach((handle, index) => {
+          const alias = `product_${index}`;
+          const product = data[alias];
+          if (product) {
+            map[handle] = product.id;
+            if (product.title) {
+              map[product.title] = product.id;
+            }
+          }
+        });
+      } catch (err) {
+        console.warn(`Failed to fetch ID map chunk ${i}:`, err);
+      }
+    }
+
+    return map;
+  }
+
+  /**
    * Creates a Metafield Definition via GraphQL API
    */
   static async createProductMetafieldDefinition(defInput: any) {

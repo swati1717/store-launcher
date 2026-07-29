@@ -56,7 +56,7 @@
           <div class="or-divider" style="text-align: center; margin: 24px 0; color: #64748b; position: relative;">OR</div>
 
           <button @click="loadDefaultDataset" class="gradient-btn" style="width: 100%">
-            Load Default HotWax Dataset
+            Load HotWax Default Data
           </button>
           <p style="text-align: center; font-size: 12px; color: #a0a0b0; margin-top: 8px;">
             This dataset contains 130 complete product families (with variants) and takes roughly 2-3 minutes to fully process via Shopify's Staged Uploads API.
@@ -178,17 +178,100 @@ const startPolling = () => {
   }, 3000);
 };
 
-const handleFileUpload = (event: Event) => {
+const prepareInventoryPayload = async (content: string, primaryLocationId: string) => {
+  const lines = content.split('\n').filter(l => l.trim() !== '');
+  
+  // Extract all handles from the dataset first
+  const handles = lines.map(line => {
+    try {
+      return JSON.parse(line).input.handle;
+    } catch { return null; }
+  }).filter(Boolean);
+
+  let handleToIdMap: Record<string, string> = {};
+  let mappedCount = 0;
+  let attempts = 0;
+  const maxAttempts = 24; // 2 minutes total (24 * 5s)
+  
+  while (mappedCount === 0 && attempts < maxAttempts) {
+    statusMessage.value = `Waiting for Shopify to index newly created products... (Attempt ${attempts + 1}/${maxAttempts})`;
+    
+    handleToIdMap = await ShopifyService.getProductHandleToIdMap(handles);
+    mappedCount = handles.filter(h => handleToIdMap[h]).length;
+    
+    if (mappedCount === 0) {
+      await new Promise(r => setTimeout(r, 5000));
+      attempts++;
+    }
+  }
+
+  statusMessage.value = `Successfully mapped ${mappedCount} products. Generating inventory payload...`;
+  
+  const inventoryLines = lines.map(line => {
+    try {
+      const p = JSON.parse(line).input;
+      
+      const { handle, ...rest } = p;
+      const productId = handleToIdMap[handle] || handleToIdMap[p.title];
+      
+      const payload: any = {
+        ...rest,
+        variants: p.variants ? p.variants.map((v: any) => ({
+          ...v,
+          inventoryQuantities: v.inventoryQuantities || [
+            {
+              locationId: primaryLocationId,
+              name: 'available',
+              quantity: 100
+            }
+          ]
+        })) : []
+      };
+      
+      if (productId) {
+        payload.id = productId;
+      } else {
+        payload.handle = handle;
+      }
+
+      return JSON.stringify({ input: payload });
+    } catch (e) {
+      return line; // Fallback to raw line if JSON parsing fails
+    }
+  });
+  
+  return inventoryLines.join('\n');
+};
+
+const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const content = e.target?.result as string;
-    startBulkOrchestration(content, file.name);
-  };
-  reader.readAsText(file);
+  uploadStatus.value = 'UPLOADING';
+  statusMessage.value = "Fetching active locations from Shopify...";
+
+  try {
+    const locations = await ShopifyService.getLocations();
+    if (!locations.length) throw new Error("No active locations found in this Shopify store.");
+    const primaryLocationId = locations[0].id;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const mappedContent = await prepareInventoryPayload(content, primaryLocationId);
+        await startBulkOrchestration(mappedContent, file.name);
+      } catch (err: any) {
+        uploadStatus.value = 'ERROR';
+        statusMessage.value = `Error mapping file: ${err.message}`;
+      }
+    };
+    reader.readAsText(file);
+  } catch (err: any) {
+    uploadStatus.value = 'ERROR';
+    statusMessage.value = `Error fetching locations: ${err.message}`;
+  }
 };
 
 const loadDefaultDataset = async () => {
@@ -207,32 +290,9 @@ const loadDefaultDataset = async () => {
     if (!response.ok) throw new Error("Could not load default template to generate inventory mappings.");
     const content = await response.text();
     
-    statusMessage.value = `Generating dynamic inventory payload for ${primaryLocationId}...`;
+    const inventoryPayload = await prepareInventoryPayload(content, primaryLocationId);
     
-    // Dynamically generate the new JSONL for inventory
-    const lines = content.split('\n').filter(l => l.trim() !== '');
-    const inventoryLines = lines.map(line => {
-      const p = JSON.parse(line).input;
-      return JSON.stringify({
-        input: {
-          ...p,
-          variants: p.variants.map((v: any) => ({
-            ...v,
-            inventoryQuantities: [
-              {
-                locationId: primaryLocationId,
-                name: 'available',
-                quantity: 100
-              }
-            ]
-          }))
-        }
-      });
-    });
-    
-    const inventoryPayload = inventoryLines.join('\n');
-    
-    startBulkOrchestration(inventoryPayload, 'default-inventory.jsonl');
+    await startBulkOrchestration(inventoryPayload, 'default-inventory.jsonl');
   } catch (err: any) {
     uploadStatus.value = 'ERROR';
     bulkError.value = err.message;

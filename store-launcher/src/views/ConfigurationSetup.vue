@@ -105,7 +105,7 @@
               </button>
               
               <button type="button" @click="loadDefaultMetafields" class="ghost-btn small-btn" :disabled="isLoadingMetafield">
-                Load HotWax Defaults
+                Load HotWax Default Data
               </button>
             </div>
           </form>

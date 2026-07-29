@@ -95,8 +95,8 @@
           
           <div class="or-divider">OR</div>
 
-          <button @click="useDefaultData" class="ghost-btn full-width" :disabled="isLoading">
-            Use HotWax Default Data
+          <button @click="useDefaultData" class="gradient-btn" style="width: 100%" :disabled="isLoading">
+            Load HotWax Default Data
           </button>
 
           <div v-if="successMessage" class="success-banner mt-4">{{ successMessage }}</div>
