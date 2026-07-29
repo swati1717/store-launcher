@@ -1,23 +1,166 @@
 [
   {
-    "name": "HotWax Default Warehouse",
+    "name": "Broadway",
     "address": {
-      "address1": "123 Commerce St",
-      "city": "Salt Lake City",
-      "provinceCode": "UT",
+      "address1": "540 Broadway",
+      "city": "Broadway",
+      "provinceCode": "NY",
       "countryCode": "US",
-      "zip": "84111"
+      "zip": "10012"
     },
     "fulfillsOnlineOrders": true
   },
   {
-    "name": "New York Retail Store",
+    "name": "Brooklyn",
     "address": {
-      "address1": "456 Broadway",
-      "city": "New York",
+      "address1": "440 Fulton St",
+      "city": "Brooklyn",
       "provinceCode": "NY",
       "countryCode": "US",
-      "zip": "10012"
+      "zip": "11201"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Centerville",
+    "address": {
+      "address1": "200 N Market Place Dr",
+      "city": "Centerville",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84014"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Garden City",
+    "address": {
+      "address1": "Garden City",
+      "city": "Garden City",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "11530"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Online Store",
+    "address": {
+      "address1": "6010 Mall Walk Suite 8080",
+      "city": "Yonkers",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "10704"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Orem State Street",
+    "address": {
+      "address1": "175 W Center St",
+      "city": "Orem State Street",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84057"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Queens",
+    "address": {
+      "address1": "40 College Point Blvd Ste B204",
+      "city": "Queens",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "11354"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Riverdale",
+    "address": {
+      "address1": "1135 W Riverdale Rd",
+      "city": "Riverdale",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84405"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Salt Lake City",
+    "address": {
+      "address1": "1110 S 300 W",
+      "city": "Salt Lake City",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84101"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "South Jordan",
+    "address": {
+      "address1": "11525 Parkway Plaza Dr",
+      "city": "South Jordan",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84095"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Staten Island",
+    "address": {
+      "address1": "2655 Richmond Ave",
+      "city": "Staten Island",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "10314"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Times Square",
+    "address": {
+      "address1": "3 Times Square",
+      "city": "Times Square",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "10036"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "West Jordan",
+    "address": {
+      "address1": "6748 Redwood Rd",
+      "city": "West Jordan",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84084"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "West Valley City",
+    "address": {
+      "address1": "5518 W High Market Dr",
+      "city": "West Valley City",
+      "provinceCode": "UT",
+      "countryCode": "US",
+      "zip": "84120"
+    },
+    "fulfillsOnlineOrders": true
+  },
+  {
+    "name": "Yonkers",
+    "address": {
+      "address1": "6010 Mall Walk Suite 8080",
+      "city": "Yonkers",
+      "provinceCode": "NY",
+      "countryCode": "US",
+      "zip": "10704"
     },
     "fulfillsOnlineOrders": true
   }

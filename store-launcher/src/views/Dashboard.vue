@@ -60,7 +60,7 @@ import {
 } from '@ionic/vue';
 import { 
   rocketOutline, storefrontOutline, locationOutline, 
-  cubeOutline, layersOutline, settingsOutline, receiptOutline, logOutOutline
+  cubeOutline, layersOutline, settingsOutline, receiptOutline, logOutOutline, flashOutline
 } from 'ionicons/icons';
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../store/auth';
@@ -73,6 +73,7 @@ const route = useRoute();
 const selectedIndex = ref(0);
 
 const appPages = [
+  { title: 'Quick Start', url: '/dashboard/quickstart', icon: flashOutline },
   { title: 'Configuration', url: '/dashboard/config', icon: settingsOutline },
   { title: 'Locations', url: '/dashboard/locations', icon: locationOutline },
   { title: 'Products', url: '/dashboard/products', icon: cubeOutline },

@@ -6,7 +6,7 @@ export class ShopifyService {
    */
   static async runGraphQL(query: string, variables: any = {}) {
     const authStore = useAuthStore();
-    
+
     if (!authStore.isAuthenticated || !authStore.storeDomain || !authStore.apiToken) {
       throw new Error('Not authenticated with Shopify.');
     }
@@ -27,7 +27,7 @@ export class ShopifyService {
       }
 
       const json = await response.json();
-      
+
       if (json.errors) {
         throw new Error(json.errors[0]?.message || 'GraphQL Query Error');
       }
@@ -51,22 +51,22 @@ export class ShopifyService {
         } 
       }
     `;
-    
+
     const response = await this.runGraphQL(mutation, { input: locationInput });
-    
+
     if (response?.locationAdd?.userErrors?.length > 0) {
       const errorMsg = response.locationAdd.userErrors[0].message;
-      
+
       if (errorMsg.includes('address.countryCode')) {
         throw new Error('Invalid Country. Please use the exact 2-letter ISO country code (e.g., US, CA, GB).');
       }
       if (errorMsg.includes('address.provinceCode')) {
         throw new Error('Invalid State/Province. Please use the exact 2-letter ISO province code (e.g., NY, TX, ON).');
       }
-      
+
       throw new Error(errorMsg);
     }
-    
+
     return response?.locationAdd?.location;
   }
 
@@ -75,7 +75,7 @@ export class ShopifyService {
    */
   static async runREST(endpoint: string, method: string = 'GET', body: any = null) {
     const authStore = useAuthStore();
-    
+
     if (!authStore.isAuthenticated || !authStore.storeDomain || !authStore.apiToken) {
       throw new Error('Not authenticated with Shopify.');
     }
@@ -139,13 +139,13 @@ export class ShopifyService {
 
     // Remove duplicates
     const uniqueHandles = [...new Set(handles)];
-    
+
     // Chunk into batches of 100 to avoid GraphQL cost limits (100 aliases = 100 points)
     const chunkSize = 100;
-    
+
     for (let i = 0; i < uniqueHandles.length; i += chunkSize) {
       const chunk = uniqueHandles.slice(i, i + chunkSize);
-      
+
       // Build a query with aliases for strict database lookup (bypasses search index lag)
       let queryStr = 'query { ';
       chunk.forEach((handle, index) => {
@@ -157,7 +157,7 @@ export class ShopifyService {
 
       try {
         const data = await this.runGraphQL(queryStr);
-        
+
         chunk.forEach((handle, index) => {
           const alias = `product_${index}`;
           const product = data[alias];
@@ -195,7 +195,7 @@ export class ShopifyService {
         }
       }
     `;
-    
+
     const definition: any = {
       namespace: defInput.namespace,
       key: defInput.key,
@@ -203,17 +203,17 @@ export class ShopifyService {
       name: defInput.name || `${defInput.namespace} ${defInput.key}`, // Required display name
       ownerType: defInput.ownerType || "PRODUCT"
     };
-    
+
     if (defInput.description) {
       definition.description = defInput.description;
     }
 
     const response = await this.runGraphQL(mutation, { definition });
-    
+
     if (response?.metafieldDefinitionCreate?.userErrors?.length > 0) {
       throw new Error(response.metafieldDefinitionCreate.userErrors[0].message);
     }
-    
+
     return response?.metafieldDefinitionCreate?.createdDefinition;
   }
 
@@ -275,7 +275,7 @@ export class ShopifyService {
     }];
 
     const response = await this.runGraphQL(mutation, { input });
-    
+
     if (response?.stagedUploadsCreate?.userErrors?.length > 0) {
       throw new Error(response.stagedUploadsCreate.userErrors[0].message);
     }
@@ -288,12 +288,12 @@ export class ShopifyService {
    */
   static async uploadFileToTarget(target: any, fileContent: string) {
     const formData = new FormData();
-    
+
     // Shopify requires exactly these parameters in this exact order
     target.parameters.forEach((param: any) => {
       formData.append(param.name, param.value);
     });
-    
+
     // Create a Blob from the file content
     const blob = new Blob([fileContent], { type: 'text/jsonl' });
     formData.append('file', blob);
@@ -368,5 +368,154 @@ export class ShopifyService {
 
     const response = await this.runGraphQL(query);
     return response?.currentBulkOperation;
+  }
+  /**
+   * -------------------------------------------------------------
+   * ORDER TESTING SCENARIOS
+   * -------------------------------------------------------------
+   */
+
+  /**
+   * Fetch active customers to use for test scenarios
+   */
+  static async fetchTestCustomers(limit: number = 20) {
+    const query = `
+      query getCustomers($first: Int!) {
+        customers(first: $first) {
+          edges {
+            node {
+              id
+              email
+              firstName
+              lastName
+              defaultAddress {
+                address1
+                city
+                provinceCode
+                countryCode
+                zip
+              }
+            }
+          }
+        }
+      }
+    `;
+    try {
+      const response = await this.runGraphQL(query, { first: limit });
+      return response?.customers?.edges.map((edge: any) => edge.node) || [];
+    } catch (e: any) {
+      console.warn('Customer fetch failed (Protected Customer Data access might be required):', e.message);
+      return []; // Return empty array to allow the app to continue gracefully
+    }
+  }
+
+  /**
+   * Fetch active products and their variants for testing
+   */
+  static async fetchTestProducts(limit: number = 20) {
+    const query = `
+      query getProducts($first: Int!) {
+        products(first: $first, query: "status:active") {
+          edges {
+            node {
+              id
+              title
+              variants(first: 3) {
+                edges {
+                  node {
+                    id
+                    title
+                    price
+                    sku
+                    inventoryQuantity
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    const response = await this.runGraphQL(query, { first: limit });
+    const products = response?.products?.edges.map((edge: any) => edge.node) || [];
+
+    // Flatten into a simple variant array
+    const variants: any[] = [];
+    for (const p of products) {
+      const pVariants = p.variants.edges.map((v: any) => ({
+        id: v.node.id,
+        title: v.node.title,
+        price: v.node.price,
+        sku: v.node.sku,
+        inventoryQuantity: v.node.inventoryQuantity,
+        productId: p.id,
+        productTitle: p.title
+      }));
+      variants.push(...pVariants);
+    }
+
+    return variants.filter(v => v.inventoryQuantity > 0).slice(0, limit);
+  }
+
+  /**
+   * Create a Draft Order
+   */
+  static async createDraftOrder(input: any) {
+    const mutation = `
+      mutation draftOrderCreate($input: DraftOrderInput!) {
+        draftOrderCreate(input: $input) {
+          draftOrder {
+            id
+            name
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+    const response = await this.runGraphQL(mutation, { input });
+    if (response?.draftOrderCreate?.userErrors?.length > 0) {
+      throw new Error(response.draftOrderCreate.userErrors[0].message);
+    }
+    return response?.draftOrderCreate?.draftOrder;
+  }
+
+  /**
+   * Complete a Draft Order
+   */
+  static async completeDraftOrder(id: string) {
+    const mutation = `
+      mutation draftOrderComplete($id: ID!) {
+        draftOrderComplete(id: $id) {
+          draftOrder {
+            order {
+              id
+              name
+              legacyResourceId
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+    const response = await this.runGraphQL(mutation, { id });
+    if (response?.draftOrderComplete?.userErrors?.length > 0) {
+      throw new Error(response.draftOrderComplete.userErrors[0].message);
+    }
+    return response?.draftOrderComplete?.draftOrder?.order;
+  }
+
+  /**
+   * Create an Order via REST API
+   */
+  static async createOrder(orderPayload: any) {
+    const payload = { order: orderPayload };
+    const response = await this.runREST('orders.json', 'POST', payload);
+    return response.order;
   }
 }

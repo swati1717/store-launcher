@@ -19,7 +19,12 @@ const routes: Array<RouteRecordRaw> = [
     children: [
       {
         path: '',
-        redirect: '/dashboard/config'
+        redirect: '/dashboard/quickstart'
+      },
+      {
+        path: 'quickstart',
+        name: 'QuickStart',
+        component: () => import('../views/QuickStart.vue')
       },
       {
         path: 'locations',
